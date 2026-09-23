@@ -86,7 +86,7 @@ const MODEL_MAPPING = {
   'google-lighter': 'poolside/laguna-xs-2.1', // was google/gemma-3-4b-it
   'm3': 'minimaxai/minimax-m3',
   'gpt-4o': 'z-ai/glm-5.3',
-  'gpt-4-turbo': 'deepseek-ai/deepseek-v4.1-flash'
+  'gpt-4-turbo': 'z-ai/glm-5.3-flash'
 };
 
 // Used when an unrecognized alias is requested. Must point at a live model.

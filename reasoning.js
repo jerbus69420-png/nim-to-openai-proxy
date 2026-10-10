@@ -176,8 +176,7 @@ function validReasoningEffort(model, effort) {
   return undefined;
 }
 
-// Resolves the client "off"/"on" override into an effective boolean. Shared
-// with callWithFallback() so both agree on whether reasoning is active.
+// Resolves the client "off"/"on" override into an effective boolean.
 function resolveEffectiveThinking(enableThinking, clientReasoningEffort) {
   if (clientReasoningEffort === 'off') return false;
   if (clientReasoningEffort === 'on') return true;
@@ -185,13 +184,12 @@ function resolveEffectiveThinking(enableThinking, clientReasoningEffort) {
 }
 
 // Nemotron 3.5 Lightning has no boolean flag — only a top-level integer
-// reasoning_budget (max reasoning tokens, -1 to 32768, default 16384). This
-// tier mapping is this proxy's own approximation, not an NVIDIA-defined enum.
+// reasoning_budget (max reasoning tokens, -1 to 32768, default 16384).
 const NEMOTRON_LIGHTNING_BUDGET_MAP = { low: 2048, medium: 8192, high: 16384, max: -1 };
 
 // Returns model-specific reasoning request payloads, spread into the
 // top-level request body. reasoning_effort "off"/"on" overrides
-// ENABLE_THINKING_MODE per-request for every model below.
+// ENABLE_THINKING_MODE per-request for applicable models.
 function getReasoningPayload(model, enableThinking, clientReasoningEffort, hasTools) {
   enableThinking = resolveEffectiveThinking(enableThinking, clientReasoningEffort);
 
@@ -255,8 +253,8 @@ function getReasoningPayload(model, enableThinking, clientReasoningEffort, hasTo
     }
 
     // poolside/laguna-xs-2.1: no documented reasoning param on NIM's hosted
-    // endpoint (model, messages, temperature, top_p, max_tokens, stream
-    // only). Falls through to default.
+    // endpoint (model, messages, temperature, top_p, max_tokens, stream only).
+    // Falls through to default.
 
     case 'minimaxai/minimax-m3': {
       const thinkingMode = effort === 'adaptive'
@@ -266,15 +264,13 @@ function getReasoningPayload(model, enableThinking, clientReasoningEffort, hasTo
     }
 
     case 'moonshotai/kimi-k3': {
-      // No off-switch — omitting the field falls back to Kimi's own 'max'.
+      // Default to low reasoning for RP stability and speed.
+      // Explicit client settings of low/high/max still take precedence.
       if (effort) return { reasoning_effort: effort };
-      return { reasoning_effort: enableThinking ? 'high' : 'low' };
+      return { reasoning_effort: 'low' };
     }
 
-    // GLM-5.3 (and the Flash variant) have no true non-thinking mode — the
-    // chat template doesn't support enable_thinking (unlike GLM-5.2), only
-    // a reasoning_effort dial. Forcing 'low' here instead of letting it
-    // default to NIM's 'max' is the only speed lever available.
+    // GLM-5.3 (and the Flash variant) have no true non-thinking mode.
     case 'z-ai/glm-5.3':
     case 'z-ai/glm-5.3-flash': {
       return { reasoning_effort: effort || 'low' };

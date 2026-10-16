@@ -269,9 +269,13 @@ function getReasoningPayload(model, enableThinking, clientReasoningEffort, hasTo
     }
 
     // GLM-5.3 (and the Flash variant) have no true non-thinking mode.
-    case 'z-ai/glm-5.3':
-    case 'z-ai/glm-5.3-flash': {
+    case 'z-ai/glm-5.3': {
       return { reasoning_effort: effort || 'low' };
+    }
+
+    case 'z-ai/glm-5.3-flash': {
+      // Force high reasoning to improve multi-step logic and consistency.
+      return { reasoning_effort: 'high' };
     }
 
     default:

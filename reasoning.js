@@ -1,5 +1,4 @@
-
- // reasoning.js
+// reasoning.js
 // Backend-specific "thinking" control: which chat_template_kwargs/top-level
 // fields each model needs to toggle reasoning, and how to extract reasoning
 // text from responses that embed it inline vs. as a structured field.
@@ -265,8 +264,8 @@ function getReasoningPayload(model, enableThinking, clientReasoningEffort, hasTo
     }
 
     case 'stepfun-ai/step-5-preview': {
-      // Force medium reasoning for consistent RP quality.
-      return { reasoning_effort: 'medium' };
+      // Force low reasoning for faster responses.
+      return { reasoning_effort: 'low' };
     }
 
     // GLM-5.3 (and the Flash variant) have no true non-thinking mode.

@@ -1,4 +1,5 @@
-// reasoning.js
+
+ // reasoning.js
 // Backend-specific "thinking" control: which chat_template_kwargs/top-level
 // fields each model needs to toggle reasoning, and how to extract reasoning
 // text from responses that embed it inline vs. as a structured field.
@@ -160,7 +161,7 @@ const REASONING_EFFORT_ENUMS = {
   'nvidia/nemotron-3-super-120b-a12b': ['low'],
   'nvidia/nemotron-3-ultra-550b-a55b': ['low'],
   'minimaxai/minimax-m3': ['adaptive'],
-  'moonshotai/kimi-k3': ['low', 'high', 'max'],
+  'stepfun-ai/step-5-preview': ['low', 'medium', 'high'],
   'meta/muse-glimmer-30b': ['none', 'minimal', 'low', 'medium', 'high', 'max'],
   'z-ai/glm-5.3': ['low', 'high', 'max'],
   'z-ai/glm-5.3-flash': ['low', 'high', 'max']
@@ -263,11 +264,9 @@ function getReasoningPayload(model, enableThinking, clientReasoningEffort, hasTo
       return { chat_template_kwargs: { thinking_mode: thinkingMode } };
     }
 
-    case 'moonshotai/kimi-k3': {
-      // Default to low reasoning for RP stability and speed.
-      // Explicit client settings of low/high/max still take precedence.
-      if (effort) return { reasoning_effort: effort };
-      return { reasoning_effort: 'low' };
+    case 'stepfun-ai/step-5-preview': {
+      // Force medium reasoning for consistent RP quality.
+      return { reasoning_effort: 'medium' };
     }
 
     // GLM-5.3 (and the Flash variant) have no true non-thinking mode.

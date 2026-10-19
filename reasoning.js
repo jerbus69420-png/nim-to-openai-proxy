@@ -275,7 +275,7 @@ function getReasoningPayload(model, enableThinking, clientReasoningEffort, hasTo
 
     case 'z-ai/glm-5.3-flash': {
       // Force high reasoning to improve multi-step logic and consistency.
-      return { reasoning_effort: 'high' };
+      return { reasoning_effort: 'low' };
     }
 
     default:

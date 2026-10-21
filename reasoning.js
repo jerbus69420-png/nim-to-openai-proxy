@@ -1,3 +1,4 @@
+
 // reasoning.js
 // Backend-specific "thinking" control: which chat_template_kwargs/top-level
 // fields each model needs to toggle reasoning, and how to extract reasoning
@@ -219,7 +220,17 @@ function getReasoningPayload(model, enableThinking, clientReasoningEffort, hasTo
       return { reasoning_budget: NEMOTRON_LIGHTNING_BUDGET_MAP[effort] ?? 16384 };
     }
 
-    case 'deepseek-ai/deepseek-v4.1-flash':
+    // DeepSeek V4.1 Flash: force thinking on at low effort.
+    // This deliberately ignores the global thinking toggle for this model.
+    case 'deepseek-ai/deepseek-v4.1-flash': {
+      return {
+        chat_template_kwargs: {
+          thinking: true,
+          reasoning_effort: 'low'
+        }
+      };
+    }
+
     case 'deepseek-ai/deepseek-v4-pro-0813': {
       if (!enableThinking) {
         return { chat_template_kwargs: { thinking: false } };

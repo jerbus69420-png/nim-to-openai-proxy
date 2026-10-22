@@ -1,4 +1,3 @@
-
 // reasoning.js
 // Backend-specific "thinking" control: which chat_template_kwargs/top-level
 // fields each model needs to toggle reasoning, and how to extract reasoning
@@ -286,7 +285,7 @@ function getReasoningPayload(model, enableThinking, clientReasoningEffort, hasTo
 
     case 'z-ai/glm-5.3-flash': {
       // Force high reasoning to improve multi-step logic and consistency.
-      return { reasoning_effort: 'low' };
+      return { reasoning_effort: 'high' };
     }
 
     default:

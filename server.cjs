@@ -85,7 +85,7 @@ const MODEL_MAPPING = {
   'google-lightest': 'meta/muse-glimmer-30b', // was google/gemma-2b
   'google-lighter': 'poolside/laguna-xs-2.1', // was google/gemma-3-4b-it
   'm3': 'deepseek-ai/deepseek-v4.1-flash',
-  'gpt-4o': 'z-ai/glm-5.3',
+  'gpt-4o': 'mistralai/mistral-large-4-1t-a52b',
   'gpt-4-turbo': 'minimaxai/minimax-m3.1-flash'
 };
 

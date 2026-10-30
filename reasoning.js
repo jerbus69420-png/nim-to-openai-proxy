@@ -1,5 +1,5 @@
 
- // reasoning.js
+// reasoning.js
 // Backend-specific reasoning control and response normalization.
 
 const SHOW_REASONING = process.env.SHOW_REASONING === 'true';
@@ -149,7 +149,8 @@ const REASONING_EFFORT_ENUMS = {
   'stepfun-ai/step-5-preview': ['low', 'medium', 'high'],
   'meta/muse-glimmer-30b': ['none', 'minimal', 'low', 'medium', 'high', 'max'],
   'z-ai/glm-5.3': ['low', 'high', 'max'],
-  'z-ai/glm-5.3-flash': ['low', 'high', 'max']
+  'z-ai/glm-5.3-flash': ['low', 'high', 'max'],
+  'mistralai/mistral-large-4-1t-a52b': ['low']
 };
 
 function validReasoningEffort(model, effort) {
@@ -276,6 +277,10 @@ function getReasoningPayload(model, enableThinking, clientReasoningEffort, hasTo
     }
 
     case 'z-ai/glm-5.3-flash': {
+      return { reasoning_effort: 'low' };
+    }
+
+    case 'mistralai/mistral-large-4-1t-a52b': {
       return { reasoning_effort: 'low' };
     }
 

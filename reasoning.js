@@ -142,7 +142,7 @@ const REASONING_EFFORT_ENUMS = {
   'deepseek-ai/deepseek-v4.1-flash': ['low', 'high', 'max'],
   'deepseek-ai/deepseek-v4-pro-0813': ['low', 'high', 'max'],
   'nvidia/nemotron-3-super-120b-a12b': ['low'],
-  'nvidia/nemotron-3-ultra-550b-a55b': ['low'],
+  'nvidia/nemotron-3-ultra-550b-a55b': ['low', 'medium', 'high'],
   'minimaxai/minimax-m3': ['adaptive'],
   'minimaxai/minimax-m3.1-flash': ['low', 'medium', 'high', 'xhigh', 'max'],
   'stepfun-ai/step-5-preview': ['low', 'medium', 'high'],
@@ -201,7 +201,7 @@ function getReasoningPayload(model, enableThinking, clientReasoningEffort, hasTo
     case 'nvidia/nemotron-3-ultra-550b-a55b': {
       if (!enableThinking) return {};
       const payload = { chat_template_kwargs: { enable_thinking: true } };
-      if (effort === 'low') payload.chat_template_kwargs.low_effort = true;
+      if (effort === 'high') payload.chat_template_kwargs.low_effort = true;
       if (hasTools) payload.chat_template_kwargs.force_nonempty_content = true;
       return payload;
     }

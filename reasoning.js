@@ -1,4 +1,3 @@
-
 // reasoning.js
 // Backend-specific reasoning control and response normalization.
 
@@ -151,7 +150,7 @@ const REASONING_EFFORT_ENUMS = {
   'z-ai/glm-5.3': ['low', 'high', 'max'],
   'z-ai/glm-5.3-flash': ['low', 'high', 'max'],
   'mistralai/mistral-large-4-1t-a52b': ['low'],
-  'moonshotai/kimi-k3_1-pro': ['low']
+  'moonshotai/kimi-k3.1-pro': ['low']
 };
 
 function validReasoningEffort(model, effort) {
@@ -285,7 +284,7 @@ function getReasoningPayload(model, enableThinking, clientReasoningEffort, hasTo
       return { reasoning_effort: 'low' };
     }
 
-    case 'moonshotai/kimi-k3_1-pro': {
+    case 'moonshotai/kimi-k3.1-pro': {
       return { reasoning_effort: 'low' };
     }
 

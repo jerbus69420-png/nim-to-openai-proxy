@@ -201,7 +201,7 @@ function getReasoningPayload(model, enableThinking, clientReasoningEffort, hasTo
     case 'nvidia/nemotron-3-ultra-550b-a55b': {
       if (!enableThinking) return {};
       const payload = { chat_template_kwargs: { enable_thinking: true } };
-      if (effort === 'high') payload.chat_template_kwargs.low_effort = true;
+      // Always use HIGH reasoning for Nemotron 3 Ultra.
       if (hasTools) payload.chat_template_kwargs.force_nonempty_content = true;
       return payload;
     }

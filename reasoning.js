@@ -1,4 +1,5 @@
-// reasoning.js
+
+ // reasoning.js
 // Backend-specific "thinking" control: which chat_template_kwargs/top-level
 // fields each model needs to toggle reasoning, and how to extract reasoning
 // text from responses that embed it inline vs. as a structured field.
@@ -155,13 +156,23 @@ function normalizeNonStreamChoice(choice, model) {
 const REASONING_EFFORT_ENUMS = {
   'openai/gpt-oss-120b': ['low', 'medium', 'high'],
   'openai/gpt-oss-20b': ['low', 'medium', 'high'],
+
   'deepseek-ai/deepseek-v4-flash-0731': ['low', 'high', 'max'],
   'deepseek-ai/deepseek-v4-pro-0813': ['low', 'high', 'max'],
-  'nvidia/nemotron-3-super-120b-a12b': ['low'],
-  'nvidia/nemotron-3-ultra-550b-a55b': ['low'],
+
+  'nvidia/nemotron-3-super-120b-a12b': ['none', 'low', 'high'],
+  'nvidia/nemotron-3-ultra-550b-a55b': ['none', 'medium', 'high'],
+  'nvidia/nemotron-3.5-super-vl-120b-a12b': ['none', 'low', 'high'],
+
   'minimaxai/minimax-m3': ['adaptive'],
+  'minimaxai/minimax-m3.1-flash': ['low', 'medium', 'high', 'xhigh', 'max'],
+
   'moonshotai/kimi-k3': ['low', 'high', 'max'],
-  'meta/muse-glimmer-30b': ['none', 'minimal', 'low', 'medium', 'high', 'max']
+  'moonshotai/kimi-k3.1-pro': ['low', 'high', 'max'],
+
+  'meta/muse-glimmer-30b': ['none', 'minimal', 'low', 'medium', 'high', 'max'],
+
+  'z-ai/glm-5.3-flash': ['low', 'high', 'max']
 };
 
 function validReasoningEffort(model, effort) {
@@ -174,12 +185,11 @@ function validReasoningEffort(model, effort) {
   return undefined;
 }
 
-// Resolves the client "off"/"on" override into an effective boolean. Shared
-// with callWithFallback() so both agree on whether reasoning is active.
+// Resolves the client "off"/"on" override into an effective boolean.
+// Reasoning is now always enabled where the backend supports it.
+// Client overrides and ENABLE_THINKING_MODE no longer disable it.
 function resolveEffectiveThinking(enableThinking, clientReasoningEffort) {
-  if (clientReasoningEffort === 'off') return false;
-  if (clientReasoningEffort === 'on') return true;
-  return enableThinking;
+  return true;
 }
 
 // Nemotron 3.5 Lightning has no boolean flag — only a top-level integer
@@ -187,57 +197,85 @@ function resolveEffectiveThinking(enableThinking, clientReasoningEffort) {
 // tier mapping is this proxy's own approximation, not an NVIDIA-defined enum.
 const NEMOTRON_LIGHTNING_BUDGET_MAP = { low: 2048, medium: 8192, high: 16384, max: -1 };
 
+// Nemotron Nano Omni also uses reasoning_budget rather than reasoning_effort.
+// 2048 is this proxy's LOW-budget approximation.
+const NEMOTRON_NANO_OMNI_LOW_BUDGET = 2048;
+
 // Returns model-specific reasoning request payloads, spread into the
-// top-level request body. reasoning_effort "off"/"on" overrides
-// ENABLE_THINKING_MODE per-request for every model below.
+// top-level request body. The proxy enforces LOW for supported models,
+// except Nemotron 3 Ultra, which is explicitly set to HIGH.
 function getReasoningPayload(model, enableThinking, clientReasoningEffort, hasTools) {
   enableThinking = resolveEffectiveThinking(enableThinking, clientReasoningEffort);
 
-  const rawEffort = (clientReasoningEffort === 'off' || clientReasoningEffort === 'on')
-    ? undefined
-    : clientReasoningEffort;
-  const effort = validReasoningEffort(model, rawEffort);
+  const effort = validReasoningEffort(
+    model,
+    model === 'nvidia/nemotron-3-ultra-550b-a55b' ? 'high' : 'low'
+  );
 
   switch (model) {
+
+    // ── Nemotron models ──────────────────────────────────────────
+
     case 'nvidia/nemotron-3-super-120b-a12b': {
-      if (!enableThinking) return {};
-      const payload = { chat_template_kwargs: { enable_thinking: true } };
-      if (effort === 'low') payload.chat_template_kwargs.low_effort = true;
-      return payload;
+      return { reasoning_effort: effort };
     }
 
     case 'nvidia/nemotron-3-ultra-550b-a55b': {
-      if (!enableThinking) return {};
-      const payload = { chat_template_kwargs: { enable_thinking: true } };
-      if (effort === 'low') payload.chat_template_kwargs.low_effort = true;
-      if (hasTools) payload.chat_template_kwargs.force_nonempty_content = true; // unverified
+      const payload = {
+        reasoning_effort: effort
+      };
+
+      // Required for correct reasoning + tool-call handling.
+      if (hasTools) {
+        payload.chat_template_kwargs = {
+          force_nonempty_content: true
+        };
+      }
+
       return payload;
     }
 
-    case 'nvidia/nemotron-3.5-lightning-30b-a3b': {
-      if (!enableThinking) return { reasoning_budget: 0 };
-      return { reasoning_budget: NEMOTRON_LIGHTNING_BUDGET_MAP[effort] ?? 16384 };
+    case 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning': {
+      return {
+        reasoning_budget: NEMOTRON_NANO_OMNI_LOW_BUDGET
+      };
     }
+
+    case 'nvidia/nemotron-3.5-super-vl-120b-a12b': {
+      return { reasoning_effort: effort };
+    }
+
+    case 'nvidia/nemotron-3.5-lightning-30b-a3b': {
+      return {
+        reasoning_budget: NEMOTRON_LIGHTNING_BUDGET_MAP.low
+      };
+    }
+
+    // ── DeepSeek ─────────────────────────────────────────────────
 
     case 'deepseek-ai/deepseek-v4-flash-0731':
     case 'deepseek-ai/deepseek-v4-pro-0813': {
-      if (!enableThinking) {
-        return { chat_template_kwargs: { thinking: false } };
-      }
       return {
         chat_template_kwargs: {
           thinking: true,
-          reasoning_effort: effort || 'high'
+          reasoning_effort: effort
         }
       };
     }
 
+    // DeepSeek V4.1 Flash's hosted NIM API reference does not currently
+    // document a reasoning_effort request parameter.
+    // Its upstream encoding supports LOW, but we avoid sending an
+    // undocumented parameter to the hosted endpoint.
+
+    // ── OpenAI GPT-OSS ───────────────────────────────────────────
+
     case 'openai/gpt-oss-120b':
     case 'openai/gpt-oss-20b': {
-      if (effort) return { reasoning_effort: effort };
-      if (enableThinking) return { reasoning_effort: 'high' };
-      return {};
+      return { reasoning_effort: effort };
     }
+
+    // ── Google Gemma ─────────────────────────────────────────────
 
     case 'google/gemma-4-31b-it': {
       if (!enableThinking) return {};
@@ -247,27 +285,76 @@ function getReasoningPayload(model, enableThinking, clientReasoningEffort, hasTo
       };
     }
 
+    // ── Meta Muse Glimmer ────────────────────────────────────────
+
     case 'meta/muse-glimmer-30b': {
-      if (effort) return { reasoning_effort: effort };
-      return { reasoning_effort: enableThinking ? 'high' : 'none' };
+      return { reasoning_effort: effort };
     }
 
-    // poolside/laguna-xs-2.1: no documented reasoning param on NIM's hosted
-    // endpoint (model, messages, temperature, top_p, max_tokens, stream
-    // only). Falls through to default.
+    // ── GLM ──────────────────────────────────────────────────────
+
+    case 'z-ai/glm-5.3-flash': {
+      return {
+        reasoning_effort: effort,
+        chat_template_kwargs: {
+          clear_thinking: true
+        }
+      };
+    }
+
+    // ── MiniMax ──────────────────────────────────────────────────
 
     case 'minimaxai/minimax-m3': {
-      const thinkingMode = effort === 'adaptive'
+      const thinkingMode = clientReasoningEffort === 'adaptive'
         ? 'adaptive'
-        : (enableThinking ? 'enabled' : 'disabled');
-      return { chat_template_kwargs: { thinking_mode: thinkingMode } };
+        : 'enabled';
+
+      return {
+        chat_template_kwargs: {
+          thinking_mode: thinkingMode
+        }
+      };
     }
 
-    case 'moonshotai/kimi-k3': {
-      // No off-switch — omitting the field falls back to Kimi's own 'max'.
-      if (effort) return { reasoning_effort: effort };
-      return { reasoning_effort: enableThinking ? 'high' : 'low' };
+    case 'minimaxai/minimax-m3.1-flash': {
+      return {
+        chat_template_kwargs: {
+          reasoning_effort: effort
+        }
+      };
     }
+
+    // ── Kimi ─────────────────────────────────────────────────────
+
+    case 'moonshotai/kimi-k3': {
+      return { reasoning_effort: 'low' };
+    }
+
+    case 'moonshotai/kimi-k3.1-pro': {
+      return { reasoning_effort: effort };
+    }
+
+    // ── Models without a documented LOW setting ──────────────────
+    //
+    // poolside/laguna-xs-2.1:
+    // Supports reasoning, but the hosted NIM endpoint does not document
+    // a configurable LOW reasoning level.
+    //
+    // google/diffusiongemma-26b-a4b-it:
+    // Reasoning is supported, but no documented LOW control is exposed.
+    // Its NVIDIA free endpoint is also marked deprecated.
+    //
+    // stepfun-ai/step-5-preview:
+    // Reasoning is enabled on the checkpoint, but no LOW/HIGH intensity
+    // parameter is exposed in its hosted API.
+    //
+    // mistralai/mistral-large-4-1t-a52b:
+    // Only NONE and HIGH are documented; LOW is not supported.
+    //
+    // The remaining Llama and Mistral instruct models in server.js
+    // do not expose a documented reasoning-effort control.
+    //
+    // These models intentionally fall through to the backend default.
 
     default:
       return {};
